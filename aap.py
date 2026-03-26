@@ -54,6 +54,37 @@ if page == "Methodology & Documentation":
     **The Equation:** $A = \sum_{i=1}^{n-1} \left[ \\frac{y_i + y_{i+1}}{2} \\right] (t_{i+1} - t_i)$
     
     *(Where $y$ is the pest/disease count, and $t$ is the time in days).*
+
+    ---
+
+    ### 💡 Real-World Example: Interpreting AUPPC
+    The number given by the AUPPC (for example, **1769.80 for Bardoli**) is called the **Total Cumulative Pest Burden**, and its unit of measurement is **"Pest-Days"**. Here is the exact breakdown of what that number means biologically and practically:
+
+    #### 1. The Core Meaning: "Pest-Days"
+    Imagine you are measuring how much damage a pest does to a crop. Damage doesn't just happen on the day the population is highest; it happens every single day the pest is present in the field.
+    * If you have **10 pests** on a plant for **1 day**, that is 10 Pest-Days of damage.
+    * If you have **2 pests** on a plant for **5 days**, that is *also* 10 Pest-Days of damage.
+    
+    When we calculated 1769.80 for Bardoli, it literally means that over the course of the entire 12-month season, the crop in Bardoli suffered the equivalent of **1,769 days of feeding by a single pest** (or 1 pest feeding for 1,769 days).
+
+    #### 2. Intensity + Duration (Why the number is so important)
+    The actual meaning of the AUPPC number is that it combines two dangerous things into one single score:
+    * **Intensity:** How high did the pest population get? (e.g., Bardoli reached over 12 pests per unit).
+    * **Duration:** How long did the pests stay in the field before dying off?
+    
+    If a location has a huge pest outbreak that lasts for only one week, the AUPPC will be low. But if a location has a moderate pest population that stays alive for 6 months, the AUPPC will be massive. **Bardoli's high number (1769.80)** means the pests there were not only high in number, but they survived and stayed active in the field for a very long time.
+
+    #### 3. Comparing the Numbers (What it tells you)
+    Let's look at pooled results for two locations:
+    * **Bardoli:** 1769.80
+    * **Chalthan:** 1055.92
+    
+    The actual meaning of this difference is **Crop Damage Potential**. Even though both locations had the exact same weather season and the exact same crop, the plants in Bardoli endured almost **70% more total pest pressure** over the year than the plants in Chalthan.
+
+    #### 🎓 How to explain this in your thesis/viva:
+    If an examiner asks you, *"What does this AUPPC value of 1769 actually mean?"*
+    
+    **You should answer:** *"The AUPPC value of 1769 represents the total accumulated pest-days over the entire cropping season. It proves that Bardoli did not just have a higher peak population on a single day, but that the overall prolonged burden and total feeding pressure on the crop throughout the year was mathematically much heavier than in Chalthan."*
     """)
 
 # ==========================================
