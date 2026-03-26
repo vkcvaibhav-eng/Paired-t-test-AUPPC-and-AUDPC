@@ -1,101 +1,142 @@
 import streamlit as st
 import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
-import statsmodels.api as sm
-from scipy.stats import pearsonr
 import numpy as np
+import scipy.stats as stats
 
-st.set_page_config(page_title="Statistical Analysis App", layout="wide")
+# --- PAGE CONFIGURATION ---
+st.set_page_config(page_title="AgriStats & Epidemiology Calculator", page_icon="🌱", layout="wide")
 
-st.title("Correlation & Regression Analysis")
-st.markdown("Upload your dataset. Stop guessing and let the math do the work.")
+# --- SIDEBAR NAVIGATION ---
+st.sidebar.title("Navigation")
+page = st.sidebar.radio("Go to:", ["Methodology & Documentation", "Paired t-test Calculator", "AUPPC / AUDPC Calculator"])
 
-# File Uploader
-uploaded_file = st.file_uploader("Upload your data (CSV or Excel)", type=['csv', 'xlsx'])
-
-if uploaded_file is not None:
-    # Read data
-    try:
-        if uploaded_file.name.endswith('.csv'):
-            df = pd.read_csv(uploaded_file)
-        else:
-            df = pd.read_excel(uploaded_file)
-        st.success("Data loaded. Don't break it.")
-        st.write(df.head())
-    except Exception as e:
-        st.error(f"Failed to read file: {e}. Check your formatting.")
-        st.stop()
-
-    # Variable Selection
-    st.subheader("1. Variable Selection")
-    columns = df.columns.tolist()
+# ==========================================
+# PAGE 1: METHODOLOGY & DOCUMENTATION
+# ==========================================
+if page == "Methodology & Documentation":
+    st.title("🌱 Agricultural Statistics & Epidemiology Calculator")
+    st.subheader("Core Methodology & Documentation")
     
-    target_var = st.selectbox("Select Dependent Variable (Y)", options=columns)
-    
-    # Remove target from independent options
-    indep_options = [col for col in columns if col != target_var]
-    predictor_vars = st.multiselect("Select Independent Variables (X)", options=indep_options, default=indep_options)
+    st.markdown("""
+    This application utilizes three distinct analytical methods to evaluate agricultural field data. While the **Paired t-test** is a statistical tool used to compare averages, **AUDPC** and **AUPPC** are epidemiological metrics used to measure the total cumulative burden of diseases or pests over a specific season.
 
-    if not predictor_vars:
-        st.warning("Select at least one independent variable.")
-        st.stop()
+    ---
 
-    df_selected = df[[target_var] + predictor_vars].dropna()
-    if df_selected.empty:
-        st.error("Your selected columns contain too many missing values. Clean your data.")
-        st.stop()
+    ### 1. Paired t-test (Statistical Comparison)
+    The paired t-test is a fundamental statistical hypothesis test used to compare the means (averages) of two related groups. In agricultural trials, it is used to determine if the population differences between two specific locations or treatments, observed over the same time periods, are statistically significant or just due to random chance.
 
-    st.markdown("---")
+    * **What it measures:** The difference between two averages.
+    * **The Output:** A $p$-value (e.g., $p < 0.05$) and a $t$-statistic.
+    * **Limitation:** It only compares averages. It cannot calculate the total severity or duration of an infestation.
+    * **Example Use Case:** *"Does Location A have a significantly higher average pest population than Location B?"*
+
+    ---
+
+    ### 2. Area Under Disease Progress Curve (AUDPC)
+    AUDPC is a standard epidemiological metric strictly used in **Plant Pathology**. It estimates the total accumulation and severity of a plant disease (such as rust, blight, or mildew) over a specific crop season. 
+
+    * **What it measures:** Total cumulative disease severity over time.
+    * **The Output:** A total scalar value measured in **"Disease-Days"**.
+    * **First Proposed By:** J.E. Vanderplank (1963) for measuring plant disease epidemics.
+
+    ---
+
+    ### 3. Area Under Pest Progress Curve (AUPPC)
+    AUPPC is a metric strictly used in **Agricultural Entomology**. It uses the exact same mathematical foundation as AUDPC, but the terminology is adapted to reflect insect or mite populations rather than plant pathogens.
+
+    * **What it measures:** Total cumulative pest population and duration.
+    * **The Output:** A total scalar value measured in **"Pest-Days"**. This single number combines *Intensity* (how high the population got) with *Duration* (how long the pests survived).
+    * **First Proposed By:** Robert F. Ruppel (1983).
+
+    ### The AUPPC / AUDPC Formula (Trapezoidal Method)
+    Both metrics calculate the total area under a population curve by dividing the graph into a series of trapezoids based on sampling intervals.
     
-    # Correlation Analysis
-    st.subheader("2. Correlation Analysis & Heatmap")
+    **The Equation:** $A = \sum_{i=1}^{n-1} \left[ \\frac{y_i + y_{i+1}}{2} \\right] (t_{i+1} - t_i)$
     
-    col1, col2 = st.columns([1, 1])
+    *(Where $y$ is the pest/disease count, and $t$ is the time in days).*
+    """)
+
+# ==========================================
+# PAGE 2: PAIRED T-TEST CALCULATOR
+# ==========================================
+elif page == "Paired t-test Calculator":
+    st.title("📊 Paired t-test Calculator")
+    st.write("Upload a CSV file containing your observation data. Each column should represent a different location or treatment.")
     
-    with col1:
-        st.markdown("**Correlation Matrix**")
-        corr_matrix = df_selected.corr()
+    uploaded_file = st.file_uploader("Upload CSV File", type=["csv"], key="ttest")
+    
+    if uploaded_file is not None:
+        df = pd.read_csv(uploaded_file)
+        st.write("### Data Preview")
+        st.dataframe(df.head())
         
-        # Plot Heatmap
-        fig, ax = plt.subplots(figsize=(8, 6))
-        sns.heatmap(corr_matrix, annot=True, cmap="coolwarm", fmt=".2f", linewidths=0.5, ax=ax)
-        st.pyplot(fig)
+        st.write("### Select Columns for Comparison")
+        col1, col2 = st.columns(2)
+        with col1:
+            var1 = st.selectbox("Select Group 1 (e.g., Bardoli)", df.columns)
+        with col2:
+            var2 = st.selectbox("Select Group 2 (e.g., Gandevi)", df.columns)
+            
+        if st.button("Run Paired t-test"):
+            # Drop NA values for the selected columns
+            data1 = pd.to_numeric(df[var1], errors='coerce').dropna()
+            data2 = pd.to_numeric(df[var2], errors='coerce').dropna()
+            
+            # Ensure equal lengths for paired t-test
+            min_len = min(len(data1), len(data2))
+            data1, data2 = data1[:min_len], data2[:min_len]
+            
+            # Calculate
+            t_stat, p_val = stats.ttest_rel(data1, data2)
+            mean_diff = np.mean(data1 - data2)
+            
+            st.success("Analysis Complete!")
+            st.write(f"**Mean Difference:** {mean_diff:.3f}")
+            st.write(f"**Calculated t-statistic:** {abs(t_stat):.3f}")
+            st.write(f"**p-value:** {p_val:.4f}")
+            
+            if p_val < 0.01:
+                st.info("Result: **Highly Significant (**)**. There is a statistically significant difference between the two groups.")
+            elif p_val < 0.05:
+                st.info("Result: **Significant (*)**. There is a statistically significant difference between the two groups.")
+            else:
+                st.warning("Result: **Non-Significant (NS)**. There is no statistically significant difference between the two groups.")
+
+# ==========================================
+# PAGE 3: AUPPC / AUDPC CALCULATOR
+# ==========================================
+elif page == "AUPPC / AUDPC Calculator":
+    st.title("📈 AUPPC / AUDPC Calculator")
+    st.write("Calculate the Area Under the Pest/Disease Progress Curve using the trapezoidal method.")
+    
+    time_interval = st.number_input("Enter Time Interval between observations (in days)", min_value=1, value=15, step=1)
+    
+    uploaded_file = st.file_uploader("Upload CSV File", type=["csv"], key="auppc")
+    
+    if uploaded_file is not None:
+        df = pd.read_csv(uploaded_file)
+        st.write("### Data Preview")
+        st.dataframe(df.head())
         
-    with col2:
-        st.markdown("**Statistical Significance (p-values)**")
-        st.markdown("If p > 0.05, the correlation is likely garbage. Pay attention.")
+        target_cols = st.multiselect("Select Locations/Treatments to Calculate Area:", df.columns)
         
-        p_values = pd.DataFrame(index=df_selected.columns, columns=df_selected.columns)
-        for r in df_selected.columns:
-            for c in df_selected.columns:
-                _, p = pearsonr(df_selected[r], df_selected[c])
-                p_values.loc[r, c] = p
+        if st.button("Calculate Area (Pest-Days / Disease-Days)"):
+            results = []
+            for col in target_cols:
+                y_values = pd.to_numeric(df[col], errors='coerce').dropna().values
                 
-        # Format p-values to scientific notation for readability
-        st.dataframe(p_values.astype(float).style.format("{:.4e}"))
-
-    st.markdown("---")
-    
-    # Regression Analysis
-    st.subheader("3. Multiple Linear Regression")
-    
-    X = df_selected[predictor_vars]
-    Y = df_selected[target_var]
-    
-    # Add constant for intercept
-    X_with_const = sm.add_constant(X)
-    
-    try:
-        model = sm.OLS(Y, X_with_const).fit()
-        st.text(model.summary())
-        
-        # Diagnostics
-        st.markdown("**Residual Diagnostics**")
-        fig_resid, ax_resid = plt.subplots(figsize=(8, 4))
-        sns.histplot(model.resid, kde=True, ax=ax_resid)
-        ax_resid.set_title("Residual Distribution (Should be normally distributed)")
-        st.pyplot(fig_resid)
-        
-    except Exception as e:
-        st.error(f"Regression failed: {e}. Check for multicollinearity or constant variables.")
+                # Trapezoidal calculation
+                if len(y_values) > 1:
+                    area = np.trapz(y_values, dx=time_interval)
+                    results.append({"Location / Treatment": col, "Total Burden (Area)": round(area, 2)})
+                else:
+                    st.error(f"Not enough data points in {col} to calculate area.")
+                    
+            if results:
+                result_df = pd.DataFrame(results)
+                st.success(f"Calculated successfully using a {time_interval}-day interval!")
+                st.table(result_df)
+                
+                # Allow user to download results
+                csv = result_df.to_csv(index=False).encode('utf-8')
+                st.download_button("Download Results as CSV", data=csv, file_name="AUPPC_Results.csv", mime="text/csv")
