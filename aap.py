@@ -152,19 +152,20 @@ elif page == "AUPPC / AUDPC Calculator":
         target_cols = st.multiselect("Select Locations/Treatments to Calculate Area:", df.columns)
         
         if st.button("Calculate Area (Pest-Days / Disease-Days)"):
-            results = []
+            area_results = []  # Changed name to prevent DataFrame conflicts
             for col in target_cols:
                 y_values = pd.to_numeric(df[col], errors='coerce').dropna().values
                 
                 # Trapezoidal calculation
                 if len(y_values) > 1:
                     area = np.trapz(y_values, dx=time_interval)
-                    results.append({"Location / Treatment": col, "Total Burden (Area)": round(area, 2)})
+                    area_results.append({"Location / Treatment": col, "Total Burden (Area)": round(area, 2)})
                 else:
                     st.error(f"Not enough data points in {col} to calculate area.")
                     
-            if results:
-                result_df = pd.DataFrame(results)
+            # Explicitly check length to avoid the Ambiguous Truth Value error
+            if len(area_results) > 0: 
+                result_df = pd.DataFrame(area_results)
                 st.success(f"Calculated successfully using a {time_interval}-day interval!")
                 st.table(result_df)
                 
