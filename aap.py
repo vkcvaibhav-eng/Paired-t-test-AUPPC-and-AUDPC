@@ -152,13 +152,13 @@ elif page == "AUPPC / AUDPC Calculator":
         target_cols = st.multiselect("Select Locations/Treatments to Calculate Area:", df.columns)
         
         if st.button("Calculate Area (Pest-Days / Disease-Days)"):
-            area_results = []  # Changed name to prevent DataFrame conflicts
+            area_results = []  
             for col in target_cols:
                 y_values = pd.to_numeric(df[col], errors='coerce').dropna().values
                 
-                # Trapezoidal calculation
+                # Trapezoidal calculation - UPDATED TO np.trapezoid to fix NumPy 2.0 error
                 if len(y_values) > 1:
-                    area = np.trapz(y_values, dx=time_interval)
+                    area = np.trapezoid(y_values, dx=time_interval)
                     area_results.append({"Location / Treatment": col, "Total Burden (Area)": round(area, 2)})
                 else:
                     st.error(f"Not enough data points in {col} to calculate area.")
