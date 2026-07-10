@@ -109,18 +109,31 @@ elif page == "Paired t-test Calculator":
             var2 = st.selectbox("Select Group 2 (e.g., Gandevi)", df.columns)
             
         if st.button("Run Paired t-test"):
-            # Drop NA values for the selected columns
-            data1 = pd.to_numeric(df[var1], errors='coerce').dropna()
-            data2 = pd.to_numeric(df[var2], errors='coerce').dropna()
-            
-            # Ensure equal lengths for paired t-test
-            min_len = min(len(data1), len(data2))
-            data1, data2 = data1[:min_len], data2[:min_len]
-            
+            if var1 == var2:
+                st.error("Please select two different columns to compare.")
+                st.stop()
+
+            # A paired t-test compares the SAME observation across two columns,
+            # so pairs must stay row-aligned. Build a two-column frame, coerce to
+            # numeric, and drop any row where either value is missing. Dropping
+            # NaNs from each column independently would break the row pairing.
+            paired = pd.DataFrame({
+                var1: pd.to_numeric(df[var1], errors='coerce'),
+                var2: pd.to_numeric(df[var2], errors='coerce'),
+            }).dropna()
+
+            if len(paired) < 2:
+                st.error("Not enough paired observations (need at least 2 rows with values in both columns).")
+                st.stop()
+
+            data1 = paired[var1].to_numpy()
+            data2 = paired[var2].to_numpy()
+
             # Calculate
             t_stat, p_val = stats.ttest_rel(data1, data2)
             mean_diff = np.mean(data1 - data2)
-            
+
+            st.write(f"**Number of pairs used:** {len(paired)}")
             st.success("Analysis Complete!")
             st.write(f"**Mean Difference:** {mean_diff:.3f}")
             st.write(f"**Calculated t-statistic:** {abs(t_stat):.3f}")
